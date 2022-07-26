@@ -1,15 +1,11 @@
 const ethers = require("ethers");
 const fs = require("fs-extra");
+require("dotenv").config();
 
 async function main() {
   //http://127.0.0.1:7545
-  const provider = new ethers.providers.JsonRpcProvider(
-    "http://localhost:7545"
-  );
-  const wallet = new ethers.Wallet(
-    "6d786aff3f8b77ba050ea046f29ca94f2b394e1d60412fa2e64247b7db233a5c",
-    provider
-  );
+  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
   const abi = fs.readFileSync("./SimpleStorage_sol_SimpleStorage.abi", "utf8");
   const binary = fs.readFileSync(
@@ -17,6 +13,18 @@ async function main() {
     "utf8"
   );
   const contractFactory = new ethers.ContractFactory(abi, binary, wallet);
+  console.log("Deploying, please wait...");
+  const contract = await contractFactory.deploy();
+  await contract.deployTransaction.wait(1);
+  const currentFavourateNumber = await contract.retrive();
+  console.log(
+    "current favourite number is: ",
+    currentFavourateNumber.toString()
+  );
+  const transactionResponse = await contract.store("9");
+  const transactionReciept = await transactionResponse.wait(1);
+  const updatedFavourateNumber = await contract.retrive();
+  console.log(updatedFavourateNumber.toString());
 }
 
 main()
